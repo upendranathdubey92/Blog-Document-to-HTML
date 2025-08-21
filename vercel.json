@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "functions": {
+    "api/parse.js": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "GROQ_API_KEY": "@groq_api_key"
+  },
+  "build": {
+    "env": {
+      "GROQ_API_KEY": "@groq_api_key"
+    }
+  }
+}

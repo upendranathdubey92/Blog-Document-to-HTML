@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document to HTML IDE - Professional Blog Content Converter</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #1a1a1a;
+            --secondary-color: #333;
+            --success-color: #14a085;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --dark-bg: #202020;
+            --darker-bg: #202020;
+            --card-bg: #1e1e1e;
+            --border-color: #333;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+        }
+
+        .ide-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .ide-container {
+            height: calc(100vh - 80px);
+            overflow: hidden;
+        }
+
+        .sidebar {
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            height: 100%;
+            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .toolbar {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            flex-wrap: wrap;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+
+        .code-editor {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-header {
+            background: var(--darker-bg);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .code-textarea {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 1rem;
+            background: var(--darker-bg);
+            color: #e2e8f0;
+            resize: none;
+        }
+
+        .code-textarea:focus {
+            outline: 1px solid var(--secondary-color);
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            margin: 1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: var(--darker-bg);
+            color: var(--text-secondary);
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--secondary-color);
+            background-color: rgba(13, 115, 119, 0.1);
+            color: var(--text-primary);
+        }
+
+        .url-input-section {
+            margin: 1rem;
+            padding: 1rem;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .url-input-section h6 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .input-group .form-control {
+            background: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .input-group .form-control:focus {
+            background: var(--darker-bg);
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.2rem rgba(13, 115, 119, 0.25);
+            color: var(--text-primary);
+        }
+
+        .input-group .form-control::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            border: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+
+        .status-bar {
+            background: var(--darker-bg);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .file-info {
+            color: #6c757d;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: var(--secondary-color);
+            padding: 2rem;
+        }
+
+        .feature-highlight {
+            background: linear-gradient(45deg, rgba(52, 152, 219, 0.1), rgba(46, 204, 113, 0.1));
+            border-left: 4px solid var(--secondary-color);
+            padding: 1rem;
+            margin: 1rem;
+            border-radius: 4px;
+        }
+
+        /* Space-O Technologies specific styles preview */
+        .blog_index_cover {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .kta-list {
+            background: #e8f4fd;
+            border: 1px solid #b3d9ff;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .callout_newbox, .callout_box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background-color: #fff !important;
+            color: #000 !important;
+        }
+        
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        @media (max-width: 768px) {
+            .toolbar {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+            
+            .editor-container {
+                flex-direction: column;
+            }
+            
+            .code-editor, .preview-pane {
+                flex: none;
+                height: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="ide-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="h3 mb-0">
+                        <i class="fas fa-code me-2"></i>
+                        Document to HTML IDE
+                    </h1>
+                    <small class="opacity-75">Professional Blog Content Converter</small>
+                </div>
+                <div class="col-auto">
+                    <span class="badge bg-success">v2.0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main IDE Container -->
+    <div class="container-fluid ide-container">
+        <div class="row h-100">
+            <!-- Sidebar -->
+            <div class="col-lg-3 col-md-4 p-0">
+                <div class="sidebar">
+                    <!-- Upload Area -->
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                        <p class="mb-2"><strong>Drop files here</strong></p>
+                        <p class="small">or click to browse</p>
+                        <div class="file-info mt-2">
+                            Supports: .docx, .txt, .md, .html
+                        </div>
+                        <input type="file" id="fileInput" accept=".doc,.docx,.txt,.md,.html" style="display: none;">
+                    </div>
+
+                    <!-- URL Input Section -->
+                    <div class="url-input-section">
+                        <h6><i class="fas fa-link me-2"></i>Fetch from URL</h6>
+                        <div class="input-group">
+                            <input type="url" 
+                                   class="form-control" 
+                                   id="documentUrl" 
+                                   placeholder="Paste document URL here..."
+                                   title="Paste URL of a public Google Doc, GitHub file, or other document URL">
+                            <button class="btn btn-info" type="button" id="fetchUrlBtn">
+                                <i class="fas fa-cloud-download-alt"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted mt-2 d-block">
+                            Supports: Google Docs, GitHub files, raw text URLs
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="col-lg-9 col-md-8 p-0">
+                <div class="main-content">
+                    <!-- Toolbar -->
+                    <div class="toolbar">
+                        <button class="btn btn-light border" id="uploadBtn">
+                            <i class="fas fa-upload me-2"></i>Upload Document
+                        </button>
+                        
+                        
+                        <button class="btn btn-primary" id="formatBtn">
+                            <i class="fas fa-magic me-2"></i>Format
+                        </button>
+                        <button class="btn btn-info" id="validateBtn">
+                            <i class="fas fa-check-circle me-2"></i>Validate
+                        </button>
+                        <button class="btn btn-success" id="copyBtn">
+                            <i class="fas fa-copy me-2"></i>Copy HTML
+                        </button>
+                        <button class="btn btn-primary" id="downloadBtn">
+                            <i class="fas fa-download me-2"></i>Download
+                        </button>
+                        <button class="btn btn-danger" id="clearBtn">
+                            <i class="fas fa-trash me-2"></i>Clear
+                        </button>
+                        
+                        <div class="ms-auto">
+                            <span class="badge bg-secondary fs-6 px-3 py-2" id="statusBadge">Ready</span>
+                        </div>
+                    </div>
+
+                    <!-- Editor Container -->
+                    <div class="editor-container">
+                        <!-- Code Editor -->
+                        <div class="code-editor" style="flex: 1; border-right: none;">
+                            <div class="editor-header">
+                                <span><i class="fas fa-code me-1"></i>HTML Editor</span>
+                                <span class="small">
+                                    <span id="fileInfo"></span>
+                                    Lines: <span id="lineCount">0</span>
+                                </span>
+                            </div>
+                            <textarea 
+                                class="code-textarea" 
+                                id="htmlEditor" 
+                                placeholder="<!-- Your HTML code will appear here -->"
+                                spellcheck="false"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Status Bar -->
+                    <div class="status-bar">
+                        <span id="statusText">Ready to convert documents</span>
+                        <div class="ms-auto">
+                            <span class="me-3">Words: <span id="wordCount">0</span></span>
+                            <span>Characters: <span id="charCount">0</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading" id="loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Processing document...</p>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Prism.js for syntax highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+    <!-- Custom JavaScript Files -->
+    <script src="section-detector.js?v=2.2"></script>
+    <script src="document-parser.js?v=2.2"></script>
+    <script src="template-system.js?v=2.2"></script>
+    <script src="url-fetcher.js?v=2.2"></script>
+    <script src="ai-parser.js?v=2.2"></script>
+    <script src="main.js?v=2.2"></script>
+</body>
+</html>
