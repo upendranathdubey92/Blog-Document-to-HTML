@@ -269,6 +269,47 @@ class DocumentParser {
                 }
                 continue;
             }
+            
+            // Handle <TABLE> blocks from Google Docs
+            if (line.includes('<TABLE>')) {
+                // Find the end of the table
+                let tableContent = [];
+                let j = i + 1;
+                
+                while (j < lines.length && !lines[j].includes('<TABLE END>')) {
+                    const tableLine = lines[j].trim();
+                    if (tableLine && !tableLine.startsWith('<') && !tableLine.endsWith('>')) {
+                        // Google Docs exports tables with tab-separated values
+                        // Keep the original line format for proper parsing
+                        tableContent.push(tableLine);
+                    }
+                    j++;
+                }
+                
+                console.log('Table content extracted:', tableContent); // Debug log
+                
+                if (tableContent.length > 0) {
+                    // Close any open list first
+                    if (inList) {
+                        html += this.closeList(currentListType);
+                        inList = false;
+                        currentListType = null;
+                    }
+                    
+                    // Process as table using section detector
+                    const tableHtml = this.sectionDetector.processTableItems(tableContent);
+                    html += tableHtml + '\n';
+                }
+                
+                // Skip processed lines
+                i = j;
+                continue;
+            }
+            
+            // Skip <TABLE END> tags
+            if (line.includes('<TABLE END>') || line.includes('TABLE END')) {
+                continue;
+            }
 
             // Handle headings and section detection
             if (this.isHeading(line) || this.sectionDetector.isStartTag(line.toUpperCase()) || this.sectionDetector.isEndTag(line.toUpperCase())) {
@@ -501,7 +542,7 @@ class DocumentParser {
         let toc = `
 <div class="blog_index_cover">
     <p class="blog_index_toggle_btn fonts-16 w-700">Table Of Contents</p>
-    <ol class="blog_index" style="display: none;">
+    <ol class="blog_index">
 `;
 
         headings.forEach((heading, index) => {
@@ -838,7 +879,7 @@ class DocumentParser {
             // Replace the existing TOC content
             const newTocSection = `<div class="blog_index_cover">
     <p class="blog_index_toggle_btn fonts-16 w-700">Table Of Contents</p>
-    <ol class="blog_index" style="display: none;">
+    <ol class="blog_index">
 ${newTocItems}    </ol>
 </div>`;
             

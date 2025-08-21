@@ -23,15 +23,27 @@ class URLDocumentFetcher {
             throw new Error('Please enter a valid URL');
         }
 
-        const processedUrl = this.processUrl(url);
-        
         try {
-            const response = await this.fetchWithCORS(processedUrl);
-            const content = await response.text();
+            // Use server-side endpoint for better CORS handling
+            const response = await fetch('/fetch-url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: url })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to fetch document');
+            }
+
+            const data = await response.json();
+            const content = data.content;
             
             return {
                 url: url,
-                originalUrl: processedUrl,
+                originalUrl: data.url,
                 content: content,
                 type: this.detectContentType(url, content),
                 title: this.extractTitle(content),
@@ -52,8 +64,8 @@ class URLDocumentFetcher {
         if (url.includes('docs.google.com/document')) {
             const docId = this.extractGoogleDocId(url);
             if (docId) {
-                // Export as plain text for easier parsing
-                return `https://docs.google.com/document/d/${docId}/export?format=txt`;
+                // Try multiple export formats for better compatibility
+                return `https://docs.google.com/document/d/${docId}/export?format=html`;
             }
         }
 
@@ -95,12 +107,34 @@ class URLDocumentFetcher {
             // If CORS fails, try with a CORS proxy
             throw new Error('CORS blocked');
         } catch (error) {
-            // Use CORS proxy as fallback
+            // For Google Docs, try alternative URLs
+            if (url.includes('docs.google.com')) {
+                const docId = this.extractGoogleDocId(url);
+                if (docId) {
+                    // Try plain text export
+                    const txtUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+                    try {
+                        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(txtUrl)}`;
+                        const response = await fetch(proxyUrl);
+                        if (response.ok) {
+                            const data = await response.json();
+                            return {
+                                ok: true,
+                                text: async () => data.contents
+                            };
+                        }
+                    } catch (proxyError) {
+                        // Continue to general proxy fallback
+                    }
+                }
+            }
+            
+            // Use CORS proxy as general fallback
             const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
             const response = await fetch(proxyUrl);
             
             if (!response.ok) {
-                throw new Error('Failed to fetch through proxy');
+                throw new Error(`Document may not be publicly accessible. Please ensure the Google Doc is shared with "Anyone with the link can view" permissions.`);
             }
             
             const data = await response.json();

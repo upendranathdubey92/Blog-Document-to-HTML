@@ -23,7 +23,8 @@
     "jsdom": "^22.1.0",
     "mammoth": "^1.6.0",
     "marked": "^9.1.2",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.3.2"
   },
   "engines": {
     "node": ">=14.0.0"

@@ -74,7 +74,7 @@ class TemplateSystem {
 <!-- Table of Contents -->
 <div class="blog_index_cover">
     <p class="blog_index_toggle_btn fonts-16 w-700">Table Of Contents</p>
-    <ol class="blog_index" style="display: none;">
+    <ol class="blog_index">
         {{toc_items}}
     </ol>
 </div>

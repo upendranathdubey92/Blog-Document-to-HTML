@@ -717,7 +717,24 @@ document.addEventListener('click', function(e) {
     if (e.target.classList.contains('blog_index_toggle_btn')) {
         const toc = e.target.nextElementSibling;
         if (toc && toc.classList.contains('blog_index')) {
-            toc.style.display = toc.style.display === 'none' ? 'block' : 'none';
+            // If no style is set, assume it's visible (block)
+            const currentDisplay = toc.style.display || 'block';
+            toc.style.display = currentDisplay === 'none' ? 'block' : 'none';
+            
+            // Update toggle button text
+            const isVisible = toc.style.display === 'block';
+            e.target.innerHTML = e.target.innerHTML.replace(/▼|▶/, isVisible ? '▼' : '▶');
         }
     }
+});
+
+// Initialize TOC toggle buttons with proper icons
+document.addEventListener('DOMContentLoaded', function() {
+    const tocButtons = document.querySelectorAll('.blog_index_toggle_btn');
+    tocButtons.forEach(btn => {
+        if (!btn.innerHTML.includes('▼') && !btn.innerHTML.includes('▶')) {
+            btn.innerHTML += ' ▼';
+        }
+        btn.style.cursor = 'pointer';
+    });
 });

@@ -185,7 +185,7 @@ class SectionDetector {
                 return `
 <div class="blog_index_cover">
     <p class="blog_index_toggle_btn fonts-16 w-700">Table Of Contents</p>
-    <ol class="blog_index" style="display: none;">
+    <ol class="blog_index">
 ${items.map(item => {
     // Handle both string items and object items with IDs
     if (typeof item === 'object' && item.text && item.id) {
@@ -485,38 +485,70 @@ ${items.map(item => {
     processTableItems(items) {
         if (!items || items.length === 0) return '';
         
+        console.log('Processing table items:', items); // Debug log
+        
         // Detect table format - pipe-separated or tab-separated
         let tableData = [];
         let headers = [];
         
-        for (let i = 0; i < items.length; i++) {
-            const item = items[i].trim();
-            if (!item) continue;
+        // Check if we have Google Docs format (each cell on separate line)
+        const hasTabsInItems = items.some(item => item.includes('\t'));
+        const hasPipesInItems = items.some(item => item.includes('|'));
+        
+        if (!hasTabsInItems && !hasPipesInItems && items.length > 4) {
+            // Google Docs format: reconstruct table from individual cells
+            // First, try to determine number of columns from the pattern
+            let numColumns = 4; // Default assumption for your table format
             
-            // Check for pipe-separated format
-            if (item.includes('|')) {
-                const columns = item.split('|').map(col => col.trim()).filter(col => col);
+            // Create rows by grouping cells
+            for (let i = 0; i < items.length; i += numColumns) {
+                const rowCells = [];
+                for (let j = 0; j < numColumns && (i + j) < items.length; j++) {
+                    const cell = items[i + j].trim();
+                    if (cell) rowCells.push(cell);
+                }
+                
+                if (rowCells.length > 0) {
+                    if (i === 0) {
+                        headers = rowCells;
+                        console.log('Headers:', headers);
+                    } else {
+                        tableData.push(rowCells);
+                        console.log(`Data row ${Math.floor(i/numColumns)}:`, rowCells);
+                    }
+                }
+            }
+        } else {
+            // Standard parsing for pipe/tab separated format
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i].trim();
+                if (!item) continue;
+                
+                let columns = [];
+                
+                // Check for pipe-separated format first (most explicit)
+                if (item.includes('|')) {
+                    columns = item.split('|').map(col => col.trim()).filter(col => col);
+                }
+                // Check for tab-separated format (Google Docs export)
+                else if (item.includes('\t')) {
+                    columns = item.split('\t').map(col => col.trim()).filter(col => col);
+                }
+                // Check for multiple spaces format (3 or more spaces)
+                else if (/\s{3,}/.test(item)) {
+                    columns = item.split(/\s{3,}/).map(col => col.trim()).filter(col => col);
+                }
+                // If no clear delimiter found, treat as single column
+                else {
+                    columns = [item];
+                }
+                
+                console.log(`Row ${i}:`, columns); // Debug log
+                
                 if (i === 0) {
                     headers = columns;
                 } else {
                     tableData.push(columns);
-                }
-            }
-            // Check for tab-separated or multiple spaces format
-            else if (item.includes('\t') || /\s{3,}/.test(item)) {
-                const columns = item.split(/\t|\s{3,}/).map(col => col.trim()).filter(col => col);
-                if (i === 0) {
-                    headers = columns;
-                } else {
-                    tableData.push(columns);
-                }
-            }
-            // Single column or simple format
-            else {
-                if (i === 0) {
-                    headers = [item];
-                } else {
-                    tableData.push([item]);
                 }
             }
         }

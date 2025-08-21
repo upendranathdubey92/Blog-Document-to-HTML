@@ -33,6 +33,57 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// URL fetch endpoint
+app.post('/fetch-url', async (req, res) => {
+  try {
+    const { url } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+
+    const fetch = (await import('node-fetch')).default;
+    
+    // Process Google Docs URLs
+    let fetchUrl = url;
+    if (url.includes('docs.google.com/document')) {
+      const docIdMatch = url.match(/\/document\/d\/([a-zA-Z0-9-_]+)/);
+      if (docIdMatch) {
+        const docId = docIdMatch[1];
+        // Try text export first
+        fetchUrl = `https://docs.google.com/document/d/${docId}/export?format=txt`;
+      }
+    }
+    
+    const response = await fetch(fetchUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+    }
+    
+    const content = await response.text();
+    
+    if (content.includes('<HTML>') && content.includes('Temporary Redirect')) {
+      return res.status(403).json({ 
+        error: 'Document requires authentication or is not publicly accessible. Please ensure the Google Doc is shared with "Anyone with the link can view" permissions.' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      content: content,
+      url: fetchUrl,
+      originalUrl: url
+    });
+
+  } catch (error) {
+    console.error('URL fetch error:', error);
+    res.status(500).json({ 
+      error: `Failed to fetch document: ${error.message}` 
+    });
+  }
+});
+
 // AI-powered document parsing endpoint
 app.post('/api/parse-with-ai', upload.single('document'), async (req, res) => {
   try {
